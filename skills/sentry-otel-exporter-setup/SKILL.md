@@ -36,7 +36,6 @@ Guide user to create Internal Integration:
 3. Set permissions:
    - **Project: Read** — required
    - **Project: Write** — required for `auto_create_projects`
-   - **Team: Read** — required for auto-creation (finds team to assign projects)
 4. Save, then **Create New Token** and copy it
 
 Get org slug from: **Settings → General Settings** or URL `https://sentry.io/organizations/{org-slug}/`
@@ -54,6 +53,8 @@ Get org slug from: **Settings → General Settings** or URL `https://sentry.io/o
 | `routing.project_from_attribute`       | No       | `service.name` | Resource attribute for routing                |
 | `routing.attribute_to_project_mapping` | No       | -              | Map attribute values to project slugs         |
 | `timeout`                              | No       | `30s`          | Exporter timeout                              |
+| `http`                                 | No       | collector defaults | HTTP client settings (timeout, TLS, headers) |
+| `sending_queue`                        | No       | enabled        | Queue settings from exporterhelper            |
 
 ### Basic Config
 
@@ -157,11 +158,36 @@ exporters:
 
 **Warning:** Avoid `insecure_skip_verify: true` in production — it disables TLS verification.
 
+## Using with Sentry SDKs
+
+If you also use a Sentry SDK (e.g., `sentry-python`, `sentry-go`, `@sentry/node`), the exporter does not maintain trace connectedness by itself. Configure the SDK to avoid duplicate trace export:
+
+| SDK | Configuration |
+| --- | ------------- |
+| sentry-go | Use OTLP integration with `setup_otlp_traces_exporter=false` |
+| sentry-python | Set `traces_sample_rate=0` or filter with `before_send_transaction` |
+| @sentry/node | Disable SDK tracing; let OTel handle traces |
+
+This ensures traces flow through the collector while errors still go directly to Sentry.
+
 ## Configure Apps
 
 Apps must set the routing attribute (default: `service.name`). This becomes the Sentry project slug.
 
-### Node.js
+### Environment Variables (Recommended)
+
+Works with any language that has an OpenTelemetry SDK:
+
+```bash
+OTEL_SERVICE_NAME=api-gateway
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+```
+
+### SDK Examples
+
+All OpenTelemetry SDKs support setting `service.name` via the Resource API. See [OpenTelemetry docs](https://opentelemetry.io/docs/languages/) for your language.
+
+**Node.js:**
 
 ```javascript
 const { Resource } = require("@opentelemetry/resources");
@@ -172,19 +198,12 @@ const resource = new Resource({
 });
 ```
 
-### Python
+**Python:**
 
 ```python
 from opentelemetry.sdk.resources import Resource
 
 resource = Resource.create({"service.name": "api-gateway"})
-```
-
-### Environment Variable (Any Language)
-
-```bash
-OTEL_SERVICE_NAME=api-gateway
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 ```
 
 ## Project Slug Requirements
@@ -209,10 +228,11 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 
 | Issue                     | Cause                              | Solution                                                   |
 | ------------------------- | ---------------------------------- | ---------------------------------------------------------- |
-| 403 errors                | Missing permissions                | Verify token has Project:Read, Project:Write, Team:Read    |
-| Projects not created      | Invalid names or Team:Read missing | Use lowercase+hyphens, add Team:Read                       |
+| 403 errors                | Missing permissions                | Verify token has Project:Read and Project:Write            |
+| Projects not created      | Invalid slug format                | Use lowercase letters, numbers, hyphens only               |
 | First batch dropped       | Async project creation             | Pre-create projects or send warmup requests                |
 | Data missing after delete | Collector cache                    | Restart collector to evict cache                           |
+| 403 then succeeds         | Cache eviction triggered           | Normal behavior; exporter auto-retries after evicting stale entry |
 | Partial batch failures    | Multi-project routing              | Retries not possible; some projects may receive duplicates |
 
 ### Check Collector Logs
@@ -240,6 +260,8 @@ The exporter respects Sentry rate limits automatically:
 | Single org per exporter                       | Deploy multiple exporters for multi-org       |
 | No metrics support                            | Use separate exporter for metrics             |
 | Partial failures can't retry cleanly          | Some projects may receive duplicates on retry |
+| Max 1000 projects cached                      | Deploy multiple exporters if exceeded         |
+| Auto-create queue limited to 1000             | Pre-create projects for large deployments     |
 
 ## Quick Reference
 
