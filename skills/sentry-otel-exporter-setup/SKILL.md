@@ -75,9 +75,6 @@ Options: [list each discovered org slug with description of where it was found]
 | `auto_create_projects`                 | No       | `false`        | Create missing projects automatically         |
 | `routing.project_from_attribute`       | No       | `service.name` | Resource attribute for routing                |
 | `routing.attribute_to_project_mapping` | No       | -              | Map attribute values to project slugs         |
-| `timeout`                              | No       | `30s`          | Exporter timeout                              |
-| `http`                                 | No       | collector defaults | HTTP client settings (timeout, TLS, headers) |
-| `sending_queue`                        | No       | enabled        | Queue settings from exporterhelper            |
 
 ### Basic Config
 
@@ -182,32 +179,11 @@ exporters:
 
 ## Self-Hosted Sentry
 
-For self-hosted installations:
-
-```yaml
-exporters:
-  sentry:
-    url: https://sentry.example.com
-    org_slug: ${env:SENTRY_ORG_SLUG}
-    auth_token: ${env:SENTRY_AUTH_TOKEN}
-    http:
-      tls:
-        ca_file: /path/to/ca.crt # Your CA certificate
-```
-
-**Warning:** Avoid `insecure_skip_verify: true` in production — it disables TLS verification.
+Set `url` to your instance (e.g., `https://sentry.example.com`). For custom TLS, configure `http.tls.ca_file`.
 
 ## Using with Sentry SDKs
 
-If you also use a Sentry SDK (e.g., `sentry-python`, `sentry-go`, `@sentry/node`), the exporter does not maintain trace connectedness by itself. Configure the SDK to avoid duplicate trace export:
-
-| SDK | Configuration |
-| --- | ------------- |
-| sentry-go | Use OTLP integration with `setup_otlp_traces_exporter=false` |
-| sentry-python | Set `traces_sample_rate=0` or filter with `before_send_transaction` |
-| @sentry/node | Disable SDK tracing; let OTel handle traces |
-
-This ensures traces flow through the collector while errors still go directly to Sentry.
+If also using a Sentry SDK, disable SDK tracing to avoid duplicates — let the collector handle traces while errors go directly to Sentry.
 
 ## Configure Apps
 
@@ -226,14 +202,7 @@ For SDK-specific configuration, see [OpenTelemetry docs](https://opentelemetry.i
 
 ## Project Slug Requirements
 
-| Requirement                         | Example             |
-| ----------------------------------- | ------------------- |
-| Lowercase letters, numbers, hyphens | `api-gateway` ✅    |
-| No underscores                      | `orders_service` ❌ |
-| No uppercase                        | `OrdersService` ❌  |
-| Max 50 characters                   | -                   |
-
-**Important:** If routing attribute is missing or empty, data is dropped with a warning.
+Slugs must be lowercase letters, numbers, and hyphens only (no underscores, max 50 chars). If the routing attribute is missing or empty, data is dropped.
 
 ## Verification
 
@@ -242,36 +211,18 @@ For SDK-specific configuration, see [OpenTelemetry docs](https://opentelemetry.i
 3. Check Sentry for projects matching service names
 4. Navigate to **Explore → Traces** to see distributed traces
 
-## Troubleshooting
+## Troubleshooting & Limitations
 
-| Issue                     | Cause                              | Solution                                                   |
-| ------------------------- | ---------------------------------- | ---------------------------------------------------------- |
-| 403 errors                | Missing permissions                | Verify token has Project:Read and Project:Write            |
-| Projects not created      | Invalid slug format                | Use lowercase letters, numbers, hyphens only               |
-| First batch dropped       | Async project creation             | Pre-create projects or send warmup requests                |
-| Data missing after delete | Collector cache                    | Restart collector to evict cache                           |
-| 403 then succeeds         | Cache eviction triggered           | Normal behavior; exporter auto-retries after evicting stale entry |
-| Partial batch failures    | Multi-project routing              | Retries not possible; some projects may receive duplicates |
+| Issue | Solution |
+| ----- | -------- |
+| 403 errors | Verify token has Project:Read and Project:Write |
+| Projects not created | Use lowercase letters, numbers, hyphens only |
+| First batch dropped | Pre-create projects or send warmup requests |
+| Deleted projects cause 403 | Restart collector to evict cache |
+| Single org per exporter | Deploy multiple exporters for multi-org |
+| No metrics support | Use separate exporter for metrics |
+| Max 1000 projects/queue | Deploy multiple exporters or pre-create projects |
 
-### Check Collector Logs
+Check logs: `docker logs otelcol-contrib 2>&1 | grep -i sentry`
 
-```bash
-docker logs otelcol-contrib 2>&1 | grep -i sentry
-```
-
-## Rate Limiting
-
-The exporter automatically respects Sentry rate limits and retries throttled requests.
-
-## Limitations
-
-| Limitation                                    | Workaround                                    |
-| --------------------------------------------- | --------------------------------------------- |
-| Missing routing attribute drops data          | Ensure `service.name` is set on all resources |
-| First batch for new projects may drop         | Pre-create projects or send warmup requests   |
-| Deleted projects cause 403 until cache evicts | Avoid deleting projects while collector runs  |
-| Single org per exporter                       | Deploy multiple exporters for multi-org       |
-| No metrics support                            | Use separate exporter for metrics             |
-| Partial failures can't retry cleanly          | Some projects may receive duplicates on retry |
-| Max 1000 projects cached                      | Deploy multiple exporters if exceeded         |
-| Auto-create queue limited to 1000             | Pre-create projects for large deployments     |
+Rate limits are automatically respected and retried.
