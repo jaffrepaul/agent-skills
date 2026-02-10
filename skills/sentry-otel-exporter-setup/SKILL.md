@@ -1,14 +1,17 @@
 ---
 name: sentry-otel-exporter-setup
-description: Configure the OpenTelemetry Collector with Sentry Exporter for multi-project routing. Use when setting up OTel with Sentry, configuring collector pipelines for traces/logs, or routing telemetry from multiple services to separate Sentry projects.
+description: Configure the OpenTelemetry Collector with Sentry Exporter for multi-project routing and automatic project creation. Use when setting up OTel with Sentry, auto-creating Sentry projects for new services, configuring collector pipelines for traces/logs, or routing telemetry from multiple services to separate Sentry projects.
 ---
 
 # Sentry OTel Exporter Setup
 
 Configure the OpenTelemetry Collector to send traces and logs to Sentry using the native Sentry Exporter.
 
+**Key benefit:** Automatically create Sentry projects when new services come online — no manual project setup required.
+
 ## Invoke This Skill When
 
+- User wants Sentry to automatically create projects for new services
 - User asks to "set up OTel with Sentry" or "configure OpenTelemetry for Sentry"
 - User wants to route telemetry from multiple services to different Sentry projects
 - User asks about `otelcol-contrib`, collector config, or Sentry exporter
