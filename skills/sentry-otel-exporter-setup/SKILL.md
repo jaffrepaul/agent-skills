@@ -41,7 +41,27 @@ Guide user to create Internal Integration:
    - **Project: Write** — required for `auto_create_projects`
 4. Save, then **Create New Token** and copy it
 
-Get org slug from: **Settings → General Settings** or URL `https://sentry.io/organizations/{org-slug}/`
+### Detect Organization Slug
+
+Check for existing Sentry configuration to find org slugs:
+
+```bash
+# Check environment variables
+env | grep -i sentry
+
+# Check common config files
+grep -r "org_slug\|organization" . --include="*.yaml" --include="*.yml" --include="*.env" 2>/dev/null | head -20
+```
+
+**If multiple org slugs are found:** Use `AskUserQuestion` to prompt the user to select the correct organization:
+
+```
+Question: "Which Sentry organization should receive telemetry?"
+Header: "Org"
+Options: [list each discovered org slug with description of where it was found]
+```
+
+**If no org slug is found:** Ask user to provide it manually. They can find it at **Settings → General Settings** or from the URL `https://sentry.io/organizations/{org-slug}/`
 
 ## Phase 2: Configure Collector
 
@@ -98,11 +118,27 @@ export SENTRY_ORG_SLUG=YOUR_SLUG_HERE
 export SENTRY_AUTH_TOKEN=YOUR_TOKEN_HERE
 ```
 
+## Phase 3: Configure Project Creation
+
+**Always ask the user** whether to enable automatic project creation using `AskUserQuestion`:
+
+```
+Question: "Do you want Sentry to automatically create projects when telemetry arrives?"
+Header: "Auto-create"
+Options:
+  - label: "No"
+    description: "You'll create projects manually in Sentry. May require manual routing config if you have multiple services."
+  - label: "Yes"
+    description: "Projects are created automatically based on service name — no manual setup needed."
+```
+
+**Default to "No"** in the generated config, but let the user decide.
+
 ## Routing Options
 
 ### Automatic Project Creation
 
-Enable when services spin up dynamically (Kubernetes, serverless):
+Automatically creates Sentry projects when telemetry arrives — no need to manually set up projects beforehand:
 
 ```yaml
 exporters:
@@ -111,7 +147,7 @@ exporters:
     auto_create_projects: true
 ```
 
-**Warning:** Project creation is asynchronous. First batch of data for a new project may be dropped while provisioning completes.
+**Note:** Project creation is asynchronous. The first batch of data for a brand new project may be dropped while provisioning completes.
 
 ### Custom Project Mapping
 
