@@ -7,24 +7,6 @@ description: Configure the OpenTelemetry Collector with Sentry Exporter for mult
 
 Configure the OpenTelemetry Collector to send traces and logs to Sentry using the native Sentry Exporter.
 
-**Key benefit:** Automatically create Sentry projects when new services come online — no manual project setup required.
-
-## Invoke This Skill When
-
-- User wants Sentry to automatically create projects for new services
-- User asks to "set up OTel with Sentry" or "configure OpenTelemetry for Sentry"
-- User wants to route telemetry from multiple services to different Sentry projects
-- User asks about `otelcol-contrib`, collector config, or Sentry exporter
-- User wants to replace DSN-based routing with org-level authentication
-
-## When to Use `sentry` vs `otlphttp`
-
-| Scenario                                    | Exporter                             |
-| ------------------------------------------- | ------------------------------------ |
-| Single project, all services share one DSN  | `otlphttp`                           |
-| Multiple projects, per-service routing      | `sentry`                             |
-| Dynamic environments with auto-provisioning | `sentry` with `auto_create_projects` |
-
 ## Prerequisites
 
 - **otelcol-contrib** — The Sentry exporter is included in [otelcol-contrib](https://github.com/open-telemetry/opentelemetry-collector-releases/tree/main/distributions/otelcol-contrib)
@@ -126,25 +108,12 @@ Options:
   - label: "No"
     description: "You'll create projects manually in Sentry. May require manual routing config if you have multiple services."
   - label: "Yes"
-    description: "Projects are created automatically based on service name — no manual setup needed."
+    description: "Projects are created automatically based on `service.name` attribute — no manual setup needed."
 ```
 
 **Default to "No"** in the generated config, but let the user decide.
 
 ## Routing Options
-
-### Automatic Project Creation
-
-Automatically creates Sentry projects when telemetry arrives — no need to manually set up projects beforehand:
-
-```yaml
-exporters:
-  sentry:
-    # ... required fields
-    auto_create_projects: true
-```
-
-**Note:** Project creation is asynchronous. The first batch of data for a brand new project may be dropped while provisioning completes.
 
 ### Custom Project Mapping
 
@@ -160,69 +129,8 @@ exporters:
         products-service: ecommerce-products
 ```
 
-Services not in the mapping fall back to using `service.name` as project slug.
-
-### Route by Different Attributes
-
-Route by environment, team, or any resource attribute:
-
-```yaml
-exporters:
-  sentry:
-    # ... required fields
-    routing:
-      project_from_attribute: deployment.environment
-      attribute_to_project_mapping:
-        production: prod-monitoring
-        staging: staging-monitoring
-```
-
-## Self-Hosted Sentry
-
-Set `url` to your instance (e.g., `https://sentry.example.com`). For custom TLS, configure `http.tls.ca_file`.
-
-## Using with Sentry SDKs
-
-If also using a Sentry SDK, disable SDK tracing to avoid duplicates — let the collector handle traces while errors go directly to Sentry.
+Services not in the mapping fall back to using `service.name` as project slug. Use `project_from_attribute` to route by a different attribute (e.g., `deployment.environment`).
 
 ## Configure Apps
 
-Apps must set the routing attribute (default: `service.name`). This becomes the Sentry project slug.
-
-### Environment Variables (Recommended)
-
-Works with any language that has an OpenTelemetry SDK:
-
-```bash
-OTEL_SERVICE_NAME=api-gateway
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
-```
-
-For SDK-specific configuration, see [OpenTelemetry docs](https://opentelemetry.io/docs/languages/).
-
-## Project Slug Requirements
-
-Slugs must be lowercase letters, numbers, and hyphens only (no underscores, max 50 chars). If the routing attribute is missing or empty, data is dropped.
-
-## Verification
-
-1. Start collector and services
-2. Send test requests
-3. Check Sentry for projects matching service names
-4. Navigate to **Explore → Traces** to see distributed traces
-
-## Troubleshooting & Limitations
-
-| Issue | Solution |
-| ----- | -------- |
-| 403 errors | Verify token has Project:Read and Project:Write |
-| Projects not created | Use lowercase letters, numbers, hyphens only |
-| First batch dropped | Pre-create projects or send warmup requests |
-| Deleted projects cause 403 | Restart collector to evict cache |
-| Single org per exporter | Deploy multiple exporters for multi-org |
-| No metrics support | Use separate exporter for metrics |
-| Max 1000 projects/queue | Deploy multiple exporters or pre-create projects |
-
-Check logs: `docker logs otelcol-contrib 2>&1 | grep -i sentry`
-
-Rate limits are automatically respected and retried.
+Apps must set the `service.name` resource attribute (or configured routing attribute). This value becomes the Sentry project slug. Missing or empty values drop the data with a warning.
