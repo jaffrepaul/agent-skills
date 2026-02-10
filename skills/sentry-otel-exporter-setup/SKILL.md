@@ -183,28 +183,7 @@ OTEL_SERVICE_NAME=api-gateway
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 ```
 
-### SDK Examples
-
-All OpenTelemetry SDKs support setting `service.name` via the Resource API. See [OpenTelemetry docs](https://opentelemetry.io/docs/languages/) for your language.
-
-**Node.js:**
-
-```javascript
-const { Resource } = require("@opentelemetry/resources");
-const { ATTR_SERVICE_NAME } = require("@opentelemetry/semantic-conventions");
-
-const resource = new Resource({
-  [ATTR_SERVICE_NAME]: "api-gateway",
-});
-```
-
-**Python:**
-
-```python
-from opentelemetry.sdk.resources import Resource
-
-resource = Resource.create({"service.name": "api-gateway"})
-```
+For SDK-specific configuration, see [OpenTelemetry docs](https://opentelemetry.io/docs/languages/).
 
 ## Project Slug Requirements
 
@@ -243,12 +222,7 @@ docker logs otelcol-contrib 2>&1 | grep -i sentry
 
 ## Rate Limiting
 
-The exporter respects Sentry rate limits automatically:
-
-- Parses `X-Sentry-Rate-Limits` headers
-- Tracks per-project, per-category limits
-- Returns throttle errors to queue for retry
-- Falls back to 60s backoff on HTTP 429
+The exporter automatically respects Sentry rate limits and retries throttled requests.
 
 ## Limitations
 
@@ -262,14 +236,3 @@ The exporter respects Sentry rate limits automatically:
 | Partial failures can't retry cleanly          | Some projects may receive duplicates on retry |
 | Max 1000 projects cached                      | Deploy multiple exporters if exceeded         |
 | Auto-create queue limited to 1000             | Pre-create projects for large deployments     |
-
-## Quick Reference
-
-| Component                 | Value                         |
-| ------------------------- | ----------------------------- |
-| Exporter                  | `sentry` (in otelcol-contrib) |
-| OTLP gRPC port            | `4317`                        |
-| OTLP HTTP port            | `4318`                        |
-| Default routing attribute | `service.name`                |
-| Auto-create default       | `false`                       |
-| Stability                 | Alpha (traces, logs)          |
