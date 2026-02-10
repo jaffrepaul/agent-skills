@@ -25,17 +25,19 @@ Guide user to create Internal Integration:
 
 ### Detect Organization Slug
 
-Check for existing Sentry configuration to find org slugs:
+**Always attempt auto-detection first.** Extract org slug from existing Sentry DSNs or configs:
 
 ```bash
-# Check environment variables
-env | grep -i sentry
+# Extract org from DSN (format: https://<key>@<org>.ingest.sentry.io/<project>)
+grep -rhoE 'https://[^@]+@([^.]+)\.ingest\.(us\.)?sentry\.io' . --include="*.env*" --include="*.yaml" --include="*.yml" --include="*.json" --include="*.properties" 2>/dev/null | sed -E 's/.*@([^.]+)\..*/\1/' | sort -u
 
-# Check common config files
-grep -r "org_slug\|organization" . --include="*.yaml" --include="*.yml" --include="*.env" 2>/dev/null | head -20
+# Check explicit org settings
+grep -rhoE '(org_slug|SENTRY_ORG)[=:]["'"'"']?([a-z0-9-]+)' . --include="*.env*" --include="*.yaml" --include="*.yml" 2>/dev/null | head -5
 ```
 
-**If multiple org slugs are found:** Use `AskUserQuestion` to prompt the user to select the correct organization:
+**If one org slug found:** Use it automatically, confirm with user.
+
+**If multiple org slugs found:** Use `AskUserQuestion`:
 
 ```
 Question: "Which Sentry organization should receive telemetry?"
@@ -43,7 +45,7 @@ Header: "Org"
 Options: [list each discovered org slug with description of where it was found]
 ```
 
-**If no org slug is found:** Ask user to provide it manually. They can find it at **Settings → General Settings** or from the URL `https://sentry.io/organizations/{org-slug}/`
+**Only if no org slug found:** Ask user to provide it. Find at **Settings → General Settings** or URL `https://sentry.io/organizations/{org-slug}/`
 
 ## Phase 2: Configure Collector
 
@@ -97,6 +99,8 @@ export SENTRY_ORG_SLUG=YOUR_SLUG_HERE
 export SENTRY_AUTH_TOKEN=YOUR_TOKEN_HERE
 ```
 
+**Important:** Always write real credentials to `.env`, never `.env.example`. If `.env` doesn't exist, create it. Add `.env` to `.gitignore` if not already present.
+
 ## Phase 3: Configure Project Creation
 
 **Always ask the user** whether to enable automatic project creation using `AskUserQuestion`:
@@ -108,10 +112,10 @@ Options:
   - label: "No"
     description: "You'll create projects manually in Sentry. May require manual routing config if you have multiple services."
   - label: "Yes"
-    description: "Projects are created automatically based on `service.name` attribute — no manual setup needed."
+    description: "Projects created from `service.name`. Initial data dropped while project is created (async)."
 ```
 
-**Default to "No"** in the generated config, but let the user decide.
+**Default to "No"** in the generated config.
 
 ## Routing Options
 
