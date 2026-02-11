@@ -25,26 +25,32 @@ Options:
 
 The Sentry exporter is included in **otelcol-contrib** v0.145.0+.
 
-Download from GitHub releases:
-- https://github.com/open-telemetry/opentelemetry-collector-releases/releases
+Detect the user's platform and download the binary for them:
 
-Select the `otelcol-contrib_<version>_<os>_<arch>.tar.gz` for your platform:
-- macOS: `darwin_amd64` or `darwin_arm64`
-- Linux: `linux_amd64` or `linux_arm64`
-- Windows: `windows_amd64.zip`
-
-Extract and make executable:
+1. Run `uname -s` and `uname -m` to detect OS and architecture
+2. Map to release values:
+   - Darwin + arm64 → `darwin_arm64`
+   - Darwin + x86_64 → `darwin_amd64`
+   - Linux + x86_64 → `linux_amd64`
+   - Linux + aarch64 → `linux_arm64`
+3. Download and extract:
 ```bash
-tar -xzf otelcol-contrib_*.tar.gz
+curl -LO https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.145.0/otelcol-contrib_0.145.0_<os>_<arch>.tar.gz
+tar -xzf otelcol-contrib_0.145.0_<os>_<arch>.tar.gz
 chmod +x otelcol-contrib
 ```
 
+Perform these steps for the user—do not just show them the commands.
+
 ### Docker Installation
 
-Use the official image:
+1. Verify Docker is installed by running `docker --version`
+2. Pull the image for the user:
+```bash
+docker pull otel/opentelemetry-collector-contrib:0.145.0
 ```
-otel/opentelemetry-collector-contrib:0.145.0
-```
+
+The `docker run` command comes later in Step 5 after the config is created.
 
 ## Step 2: Configure Project Creation
 
