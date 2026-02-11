@@ -61,10 +61,12 @@ Question: "Do you want Sentry to automatically create projects when telemetry ar
 Header: "Auto-create"
 Options:
   - label: "Yes"
-    description: "Projects created from service.name. Initial data may be dropped while project is created."
+    description: "Projects created from service.name. Requires at least one team in your Sentry org. All new projects are assigned to the first team found. Initial data may be dropped during creation."
   - label: "No"
     description: "Projects must exist in Sentry before telemetry arrives."
 ```
+
+**If user chooses Yes**: Warn them that the exporter will scan all projects and use the first team it finds. All auto-created projects will be assigned to that team. If they don't have any teams yet, they should create one in Sentry first.
 
 ## Step 3: Write Collector Config
 
@@ -102,6 +104,31 @@ service:
 
 If user chose auto-create in Step 2, add `auto_create_projects: true` to the sentry exporter.
 
+### Add Debug Exporter (Recommended)
+
+For troubleshooting during setup, add the debug exporter to see telemetry in collector logs:
+
+```yaml
+exporters:
+  sentry:
+    # ... existing config
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [sentry, debug]  # Add debug here
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [sentry, debug]  # Add debug here
+```
+
+This logs all telemetry to console. Remove `debug` from exporters list once setup is verified.
+
 ### Configuration Options
 
 | Parameter                              | Required | Default        | Description                                   |
@@ -135,9 +162,10 @@ Create an Internal Integration in Sentry to get an auth token:
 
 1. Go to **Settings → Developer Settings → Custom Integrations**
 2. Click **Create New Integration** → Choose **Internal Integration**
-3. Set permissions based on Step 2 choice:
-   - If auto-create **Yes**: Project Read + Write
-   - If auto-create **No**: Project Read only
+3. Set permissions:
+   - **Organization: Read** — required
+   - **Project: Read** — required
+   - **Project: Write** — required for `auto_create_projects`
 4. Save, then click **Create New Token** and copy it
 
 Create `.env` (or add to existing) with placeholders:
