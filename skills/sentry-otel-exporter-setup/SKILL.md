@@ -1,6 +1,6 @@
 ---
 name: sentry-otel-exporter-setup
-description: Configure the OpenTelemetry Collector with Sentry Exporter for multi-project routing and automatic project creation. Use when setting up OTel with Sentry, auto-creating Sentry projects for new services, configuring collector pipelines for traces/logs, or routing telemetry from multiple services to separate Sentry projects.
+description: Configure the OpenTelemetry Collector with Sentry Exporter for multi-project routing and automatic project creation. Use when setting up OTel with Sentry, configuring collector pipelines for traces and logs, or routing telemetry from multiple services to Sentry projects.
 ---
 
 # Sentry OTel Exporter Setup
@@ -23,29 +23,15 @@ Guide user to create Internal Integration:
    - **Project: Write** — required for `auto_create_projects`
 4. Save, then **Create New Token** and copy it
 
-### Detect Organization Slug
+### Get Organization Slug
 
-**Always attempt auto-detection first.** Extract org slug from existing Sentry DSNs or configs:
-
-```bash
-# Extract org from DSN (format: https://<key>@<org>.ingest.sentry.io/<project>)
-grep -rhoE 'https://[^@]+@([^.]+)\.ingest\.(us\.)?sentry\.io' . --include="*.env*" --include="*.yaml" --include="*.yml" --include="*.json" --include="*.properties" 2>/dev/null | sed -E 's/.*@([^.]+)\..*/\1/' | sort -u
-
-# Check explicit org settings
-grep -rhoE '(org_slug|SENTRY_ORG)[=:]["'"'"']?([a-z0-9-]+)' . --include="*.env*" --include="*.yaml" --include="*.yml" 2>/dev/null | head -5
-```
-
-**If one org slug found:** Use it automatically, confirm with user.
-
-**If multiple org slugs found:** Use `AskUserQuestion`:
+Ask the user directly:
 
 ```
-Question: "Which Sentry organization should receive telemetry?"
+Question: "What is your Sentry organization slug?"
 Header: "Org"
-Options: [list each discovered org slug with description of where it was found]
+Description: Find at Settings → General Settings or in URL: sentry.io/organizations/{slug}/
 ```
-
-**Only if no org slug found:** Ask user to provide it. Find at **Settings → General Settings** or URL `https://sentry.io/organizations/{org-slug}/`
 
 ## Phase 2: Configure Collector
 
