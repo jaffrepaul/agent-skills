@@ -5,6 +5,8 @@ description: Configure the OpenTelemetry Collector with Sentry Exporter for mult
 
 # Sentry OTel Exporter Setup
 
+**Terminology**: Always capitalize "Sentry Exporter" when referring to the exporter component.
+
 Configure the OpenTelemetry Collector to send traces and logs to Sentry using the Sentry Exporter.
 
 ## Step 1: Choose Installation Method
@@ -168,7 +170,7 @@ Create an Internal Integration in Sentry to get an auth token:
    - **Project: Write** — required for `auto_create_projects`
 4. Save, then click **Create New Token** and copy it
 
-Create `.env` (or add to existing) with placeholders:
+Create `.env` (or add to existing) with placeholder values. Say something like: "I'll add the environment variable keys with placeholder values for you to fill in."
 
 ```bash
 SENTRY_ORG_SLUG=your-org-slug
@@ -209,6 +211,3 @@ Ports:
 - **4318** — HTTP receiver
 - **13133** — Health check
 
-## Step 6: Configure Apps
-
-Apps must set the `service.name` resource attribute (or configured routing attribute). This value becomes the Sentry project slug. Missing or empty values drop the data with a warning.
