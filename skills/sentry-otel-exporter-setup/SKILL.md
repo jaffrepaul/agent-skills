@@ -123,33 +123,29 @@ exporters:
 
 Services not in the mapping fall back to using `service.name` as project slug.
 
-## Step 4: Get Sentry Credentials
+## Step 4: Set Up Credentials
 
-After the collector config is written, guide the user to create credentials and collect them together.
+Create an Internal Integration in Sentry to get an auth token:
 
-### Create Internal Integration
-
-1. Navigate to **Settings → Developer Settings → Custom Integrations**
+1. Go to **Settings → Developer Settings → Custom Integrations**
 2. Click **Create New Integration** → Choose **Internal Integration**
-3. Set permissions:
-   - **Project: Read** — required
-   - **Project: Write** — only if auto-create is enabled
-4. Save, then **Create New Token** and copy it
+3. Set permissions based on Step 2 choice:
+   - If auto-create **Yes**: Project Read + Write
+   - If auto-create **No**: Project Read only
+4. Save, then click **Create New Token** and copy it
 
-### Collect Credentials
-
-Ask the user for their **organization slug** and **auth token** together:
-- Organization slug: Found in URL `sentry.io/organizations/{slug}/`
-- Auth token: The token created above
-
-Write both to `.env`:
+Create `.env` (or add to existing) with placeholders:
 
 ```bash
-SENTRY_ORG_SLUG=<user-provided>
-SENTRY_AUTH_TOKEN=<user-provided>
+SENTRY_ORG_SLUG=your-org-slug
+SENTRY_AUTH_TOKEN=your-token-here
 ```
 
-**Important:** Always write credentials to `.env`, never `.env.example`. If `.env` doesn't exist, create it. Add `.env` to `.gitignore` if not already present.
+Tell the user to replace the placeholder values:
+- **Org slug**: Found in URL `sentry.io/organizations/{slug}/`
+- **Auth token**: The token from step 4
+
+Ensure `.env` is in `.gitignore`.
 
 ## Step 5: Run the Collector
 
