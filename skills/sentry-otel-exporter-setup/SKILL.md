@@ -5,6 +5,8 @@ description: Configure the OpenTelemetry Collector with Sentry Exporter for mult
 
 # Sentry OTel Exporter Setup
 
+**Terminology**: Always capitalize "Sentry Exporter" when referring to the exporter component.
+
 Configure the OpenTelemetry Collector to send traces and logs to Sentry using the Sentry Exporter.
 
 ## Step 1: Choose Installation Method
@@ -129,32 +131,9 @@ service:
 
 This logs all telemetry to console. Remove `debug` from exporters list once setup is verified.
 
-### Configuration Options
+### Routing (Optional)
 
-| Parameter                              | Required | Default        | Description                                   |
-| -------------------------------------- | -------- | -------------- | --------------------------------------------- |
-| `url`                                  | Yes      | -              | Base URL (`https://sentry.io` or self-hosted) |
-| `org_slug`                             | Yes      | -              | Organization slug                             |
-| `auth_token`                           | Yes      | -              | Internal Integration token                    |
-| `auto_create_projects`                 | No       | `false`        | Create missing projects automatically         |
-| `routing.project_from_attribute`       | No       | `service.name` | Resource attribute for routing                |
-| `routing.attribute_to_project_mapping` | No       | -              | Map attribute values to project slugs         |
-
-### Routing Options
-
-Map service names to different project slugs:
-
-```yaml
-exporters:
-  sentry:
-    # ... required fields
-    routing:
-      attribute_to_project_mapping:
-        orders-service: ecommerce-orders
-        products-service: ecommerce-products
-```
-
-Services not in the mapping fall back to using `service.name` as project slug.
+To map service names to different project slugs, add `routing.attribute_to_project_mapping` to the sentry exporter. Services not in the mapping fall back to `service.name` as project slug.
 
 ## Step 4: Set Up Credentials
 
@@ -168,7 +147,7 @@ Create an Internal Integration in Sentry to get an auth token:
    - **Project: Write** — required for `auto_create_projects`
 4. Save, then click **Create New Token** and copy it
 
-Create `.env` (or add to existing) with placeholders:
+Create `.env` (or add to existing) with placeholder values. Say something like: "I'll add the environment variable keys with placeholder values for you to fill in."
 
 ```bash
 SENTRY_ORG_SLUG=your-org-slug
@@ -204,11 +183,3 @@ docker run -d \
   otel/opentelemetry-collector-contrib:0.145.0
 ```
 
-Ports:
-- **4317** — gRPC receiver
-- **4318** — HTTP receiver
-- **13133** — Health check
-
-## Step 6: Configure Apps
-
-Apps must set the `service.name` resource attribute (or configured routing attribute). This value becomes the Sentry project slug. Missing or empty values drop the data with a warning.
