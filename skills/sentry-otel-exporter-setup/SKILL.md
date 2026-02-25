@@ -76,7 +76,7 @@ Detect the user's platform and download the binary:
    - Darwin + x86_64 → `darwin_amd64`
    - Linux + x86_64 → `linux_amd64`
    - Linux + aarch64 → `linux_arm64`
-3. Download and extract using the numeric version (without `v` prefix):
+3. Download and extract:
 ```bash
 curl -LO https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v<numeric_version>/otelcol-contrib_<numeric_version>_<os>_<arch>.tar.gz
 tar -xzf otelcol-contrib_<numeric_version>_<os>_<arch>.tar.gz
@@ -86,6 +86,11 @@ chmod +x otelcol-contrib
 Example: For version `v0.145.0`, the URL uses `v0.145.0` in the path but `0.145.0` in the filename.
 
 Perform these steps for the user—do not just show them the commands.
+
+4. Ask the user if they want to delete the downloaded tarball to save disk space (~50MB). If yes, remove it:
+```bash
+rm otelcol-contrib_<numeric_version>_<os>_<arch>.tar.gz
+```
 
 ### Docker Installation
 
@@ -199,7 +204,7 @@ Use the collector path recorded in Step 2 (either `otelcol-contrib` if on PATH, 
 **Load environment variables first**, then run validation:
 
 ```bash
-set -a && source <env_file> && set +a && <collector_path> validate --config <config_file>
+set -a && source "<env_file>" && set +a && "<collector_path>" validate --config "<config_file>"
 ```
 
 #### Docker validation
@@ -208,8 +213,8 @@ set -a && source <env_file> && set +a && <collector_path> validate --config <con
 
 ```bash
 docker run --rm \
-  -v <absolute_config_path>:/etc/otelcol-contrib/config.yaml \
-  --env-file <env_file> \
+  -v "<absolute_config_path>":/etc/otelcol-contrib/config.yaml \
+  --env-file "<env_file>" \
   otel/opentelemetry-collector-contrib:<numeric_version> \
   validate --config /etc/otelcol-contrib/config.yaml
 ```
@@ -246,7 +251,7 @@ Provide the appropriate command based on the installation method chosen in Step 
 **Load environment variables first**, then run the collector:
 
 ```bash
-set -a && source <env_file> && set +a && <collector_path> --config <config_file>
+set -a && source "<env_file>" && set +a && "<collector_path>" --config "<config_file>"
 ```
 
 ### Docker
@@ -264,8 +269,8 @@ docker run -d \
   -p 4317:4317 \
   -p 4318:4318 \
   -p 13133:13133 \
-  -v <absolute_config_path>:/etc/otelcol-contrib/config.yaml \
-  --env-file <env_file> \
+  -v "<absolute_config_path>":/etc/otelcol-contrib/config.yaml \
+  --env-file "<env_file>" \
   otel/opentelemetry-collector-contrib:<numeric_version>
 ```
 
